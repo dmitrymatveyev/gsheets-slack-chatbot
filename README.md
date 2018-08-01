@@ -1,0 +1,1 @@
+The chat bot for Slack that obtains a data from Google sheets by a cell name.
