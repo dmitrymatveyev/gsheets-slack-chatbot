@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
 	"gsheets-slack-chatbot/utility"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -23,9 +22,19 @@ func main() {
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
-	e, err := getEventFromBody(r.Body)
+	raw, _ := ioutil.ReadAll(r.Body)
+	log.Printf("Received: %s\n", string(raw))
+
+	var e OuterEvent
+	err := utility.DeserializeJson(bytes.NewReader(raw), &e)
 	if err != nil {
 		utility.WriteBadRequest(w, err)
+		return
+	}
+
+	if e.Type == "event_callback" {
+		processMesChans(w, r, e.Event)
+		utility.WriteResponse(w, e)
 		return
 	}
 
@@ -33,13 +42,4 @@ func post(w http.ResponseWriter, r *http.Request) {
 		utility.WriteResponse(w, e)
 		return
 	}
-}
-
-func getEventFromBody(body io.Reader) (Event, error) {
-	raw, _ := ioutil.ReadAll(body)
-	var e Event
-	if err := json.Unmarshal(raw, &e); err != nil {
-		return Event{}, err
-	}
-	return e, nil
 }

@@ -2,6 +2,8 @@ package utility
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -24,4 +26,9 @@ func WriteResponse(w http.ResponseWriter, response interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+func DeserializeJson(body io.Reader, v interface{}) error {
+	raw, _ := ioutil.ReadAll(body)
+	return json.Unmarshal(raw, v)
 }
