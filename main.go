@@ -1,45 +1,78 @@
 package main
 
 import (
-	"bytes"
-	"gsheets-slack-chatbot/utility"
+	"encoding/json"
+	"fmt"
+	"gsheets-slack-chatbot/log"
+	"gsheets-slack-chatbot/model"
+	"gsheets-slack-chatbot/processor"
+	"gsheets-slack-chatbot/web"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
+	"reflect"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	r := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter().StrictSlash(true)
 
-	r.
+	router.
 		Methods("POST").
 		Path("/").
 		HandlerFunc(post)
 
-	log.Fatal(http.ListenAndServe(":80", r))
+	err := http.ListenAndServe(":80", router)
+
+	log.Error("main.main()", "", err)
+	os.Exit(1)
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
-	raw, _ := ioutil.ReadAll(r.Body)
-	log.Printf("Received: %s\n", string(raw))
+	where := "main.post(...)"
 
-	var e OuterEvent
-	err := utility.DeserializeJson(bytes.NewReader(raw), &e)
+	raw, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		utility.WriteBadRequest(w, err)
+		log.Error(where, "Failed to read a body.", err)
+		web.WriteBadRequest(w, err)
 		return
 	}
+	log.Trace(where, fmt.Sprintf("Received: \"%s\".", string(raw)))
+
+	var e model.OuterEvent
+	err = json.Unmarshal(raw, &e)
+	if err != nil {
+		log.Error(where, fmt.Sprintf("Failed to deserialize %v.", reflect.TypeOf(e)), err)
+		web.WriteBadRequest(w, err)
+		return
+	}
+	log.Trace(where, fmt.Sprintf("Successfully deserialized %v.", reflect.TypeOf(e)))
 
 	if e.Type == "event_callback" {
-		processMesChans(w, r, e.Event)
-		utility.WriteResponse(w, e)
+		handleMessage(w, r, e.Event)
 		return
 	}
 
 	if e.Type == "url_verification" {
-		utility.WriteResponse(w, e)
+		web.WriteResponse(w, e)
 		return
 	}
+}
+
+func handleMessage(w http.ResponseWriter, r *http.Request, raw *json.RawMessage) {
+	where := "main.handleMessage(...)"
+
+	var m model.MessageChannels
+	err := json.Unmarshal(*raw, &m)
+	if err != nil {
+		log.Error(where, fmt.Sprintf("Failed to deserialize %v.", reflect.TypeOf(m)), err)
+		web.WriteBadRequest(w, err)
+		return
+	}
+	log.Trace(where, fmt.Sprintf("Successfully deserialized %v.", reflect.TypeOf(m)))
+
+	go processor.ProcessMessageChannels(&m)
+
+	w.WriteHeader(http.StatusOK)
 }

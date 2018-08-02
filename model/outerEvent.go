@@ -1,7 +1,8 @@
-package main
+package model
 
 import "encoding/json"
 
+// OuterEvent holds basic information about an event
 type OuterEvent struct {
 	Token     string           `json:"token"`
 	Challenge string           `json:"challenge"`
