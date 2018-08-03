@@ -4,26 +4,34 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gsheets-slack-chatbot/log"
 	"gsheets-slack-chatbot/model"
+	util "gsheets-slack-chatbot/utility"
 	"net/http"
 )
 
-const token = "xoxa-409706946007-408390633905-409665283381-1e30506391a0a7f939df0683e2fe7237"
-const url = "https://slack.com/api/chat.postMessage"
-const botUserID = "UC0BGJMSM"
+// Processor processes a message
+type Processor struct {
+	log    *util.Log
+	config *util.Config
+}
 
-type message struct {
-	Text    string `json:"text"`
-	Channel string `json:"channel"`
+// New creates new instance of Processor
+func New(log *util.Log, config *util.Config) (*Processor, error) {
+	return &Processor{log: log, config: config}, nil
 }
 
 // ProcessMessageChannels handles an event processing
-func ProcessMessageChannels(mesChan *model.MessageChannels) {
-	where := "processor.ProcessMessageChannels(...)"
+func (p *Processor) ProcessMessageChannels(mesChan *model.MessageChannels) {
+	where := "processor.Processor.ProcessMessageChannels(...)"
+
+	botUserID, err := p.config.Get("SlackBotUserID")
+	if err != nil {
+		p.log.Error(where, "", err)
+		return
+	}
 
 	if mesChan.User == botUserID {
-		log.Trace(where, "It's me. Skip.")
+		p.log.Trace(where, "It's me. Skip.")
 		return
 	}
 
@@ -32,31 +40,46 @@ func ProcessMessageChannels(mesChan *model.MessageChannels) {
 		Text:    mesChan.Text,
 	}
 
-	sendMessage(&mes)
+	p.sendMessage(&mes)
 }
 
-func sendMessage(m *message) {
-	where := "processor.sendMessage(...)"
+func (p *Processor) sendMessage(m *message) {
+	where := "processor.Processor.sendMessage(...)"
 
 	raw, err := json.Marshal(&m)
 	if err != nil {
-		log.Error(where, "Couldn't serialize message.", err)
+		p.log.Error(where, "Couldn't serialize message.", err)
+		return
 	}
-	log.Trace(where, fmt.Sprintf("Sucessfully serialized message: %s", string(raw)))
+	p.log.Trace(where, fmt.Sprintf("Sucessfully serialized message: %s", string(raw)))
+
+	url, err := p.config.Get("SlackPostURL")
+	if err != nil {
+		p.log.Error(where, "", err)
+		return
+	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(raw))
 	if err != nil {
-		log.Error(where, "Couldn't create request object.", err)
+		p.log.Error(where, "Couldn't create request object.", err)
+		return
+	}
+
+	token, err := p.config.Get("SlackWorkspaceToken")
+	if err != nil {
+		p.log.Error(where, "", err)
+		return
 	}
 
 	req.Header.Add("Content-type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	var c http.Client
-	log.Trace(where, fmt.Sprintf("Making call to %s.", url))
+	p.log.Trace(where, fmt.Sprintf("Making call to %s.", url))
 	res, err := c.Do(req)
 	if err != nil {
-		log.Error(where, fmt.Sprintf("Couldn't call to %s.", url), err)
+		p.log.Error(where, fmt.Sprintf("Couldn't call to %s.", url), err)
+		return
 	}
-	log.Trace(where, fmt.Sprintf("Successfully called to %s. Status: %s", url, res.Status))
+	p.log.Trace(where, fmt.Sprintf("Successfully called to %s. Status: %s", url, res.Status))
 }
