@@ -18,3 +18,4 @@ debug
 
 # Log files
 *.log
+credentials.json
