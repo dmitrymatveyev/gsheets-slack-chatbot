@@ -1,13 +1,17 @@
 package utility
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 )
 
 // Log manages log
-type Log struct{}
+type Log struct {
+	queue  chan string
+	finish chan bool
+}
 
 // NewLog creates new instance of Log
 func NewLog(c *Config) (*Log, error) {
@@ -20,19 +24,36 @@ func NewLog(c *Config) (*Log, error) {
 		return nil, err
 	}
 	log.SetOutput(writer)
-	return &Log{}, nil
+
+	queue := make(chan string, 10000)
+	finish := make(chan bool)
+
+	go func() {
+		for message := range queue {
+			log.Println(message)
+		}
+		close(finish)
+	}()
+
+	return &Log{queue: queue, finish: finish}, nil
 }
 
 // Error stores ERROR level message into log
 func (l *Log) Error(where string, message string, err error) {
-	log.Printf("ERROR %s %s %s %v\n", time.Now().UTC().Format(time.RFC3339), where, message, err)
+	l.queue <- fmt.Sprintf("ERROR %s %s %s %v", time.Now().UTC().Format(time.RFC3339), where, message, err)
 }
 
 // Trace stores TRACE level message into log
 func (l *Log) Trace(where string, message string) {
-	withLevel("TRACE", where, message)
+	l.withLevel("TRACE", where, message)
 }
 
-func withLevel(level string, where string, message string) {
-	log.Printf("%s %s %s %s\n", level, time.Now().UTC().Format(time.RFC3339), where, message)
+func (l *Log) withLevel(level string, where string, message string) {
+	l.queue <- fmt.Sprintf("%s %s %s %s", level, time.Now().UTC().Format(time.RFC3339), where, message)
+}
+
+// Close properly ends Log instance lifecycle
+func (l *Log) Close() {
+	close(l.queue)
+	<-l.finish
 }

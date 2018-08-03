@@ -18,6 +18,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer log.Close()
 	helper, err := util.NewWebHelper()
 	if err != nil {
 		panic(err)
