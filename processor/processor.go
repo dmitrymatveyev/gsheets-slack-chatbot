@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gsheets-slack-chatbot/model"
+	"gsheets-slack-chatbot/model/slack"
 	util "gsheets-slack-chatbot/utility"
 	"net/http"
 )
@@ -35,15 +35,21 @@ func (p *Processor) ProcessMessageChannels(mesChan *model.MessageChannels) {
 		return
 	}
 
-	mes := message{
+	cell, err := p.getCellContent(mesChan.Text)
+	if err != nil {
+		return
+	}
+	p.log.Trace(where, fmt.Sprintf("Message was: \"%s\". Cell content: \"%s\".", mesChan.Text, cell))
+
+	mes := model.Message{
 		Channel: mesChan.Channel,
-		Text:    mesChan.Text,
+		Text:    cell,
 	}
 
 	p.sendMessage(&mes)
 }
 
-func (p *Processor) sendMessage(m *message) {
+func (p *Processor) sendMessage(m *model.Message) {
 	where := "processor.Processor.sendMessage(...)"
 
 	raw, err := json.Marshal(&m)

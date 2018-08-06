@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"gsheets-slack-chatbot/model"
+	"gsheets-slack-chatbot/model/slack"
 	proc "gsheets-slack-chatbot/processor"
 	"gsheets-slack-chatbot/utility"
 	"io/ioutil"

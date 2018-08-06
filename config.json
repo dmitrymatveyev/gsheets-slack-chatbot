@@ -2,5 +2,6 @@
     "logFileName": "log.log",
     "SlackWorkspaceToken": "xoxa-409706946007-408390633905-409665283381-1e30506391a0a7f939df0683e2fe7237",
     "SlackPostURL": "https://slack.com/api/chat.postMessage",
-    "SlackBotUserID": "UC0BGJMSM"
+    "SlackBotUserID": "UC0BGJMSM",
+    "GoogleSheetsCellExpr": "/spreadsheets/d/([a-zA-Z0-9-_]+)\\S*\\s+(.+![a-zA-Z]+[0-9]+:[a-zA-Z]+[0-9]+)"
 }
