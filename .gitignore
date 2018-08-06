@@ -19,3 +19,4 @@ debug
 # Log files
 *.log
 credentials.json
+token.json
