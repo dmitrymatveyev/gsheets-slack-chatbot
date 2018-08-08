@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	where := "main.main()"
+
 	config, err := util.NewConfig("config.json")
 	if err != nil {
 		panic(err)
@@ -38,8 +40,9 @@ func main() {
 		Path("/").
 		HandlerFunc(contr.Post)
 
+	log.Trace(where, "Listening on port 80.")
 	err = http.ListenAndServe(":80", router)
 
-	log.Error("main.main()", "", err)
+	log.Error(where, "", err)
 	os.Exit(1)
 }
