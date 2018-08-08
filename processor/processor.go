@@ -30,6 +30,7 @@ func (p *Processor) ProcessMessageChannels(mesChan *model.MessageChannels) {
 		return
 	}
 
+	p.log.Trace(where, fmt.Sprintf("User ID is \"%s\".", mesChan.User))
 	if mesChan.User == botUserID {
 		p.log.Trace(where, "It's me. Skip.")
 		return
@@ -37,6 +38,7 @@ func (p *Processor) ProcessMessageChannels(mesChan *model.MessageChannels) {
 
 	cell, err := p.getCellContent(mesChan.Text)
 	if err != nil {
+		p.log.Error(where, "couldn't get cell content.", err)
 		return
 	}
 	p.log.Trace(where, fmt.Sprintf("Message was: \"%s\". Cell content: \"%s\".", mesChan.Text, cell))

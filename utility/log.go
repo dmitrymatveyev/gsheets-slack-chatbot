@@ -15,7 +15,7 @@ type Log struct {
 
 // NewLog creates new instance of Log
 func NewLog(c *Config) (*Log, error) {
-	path, err := c.Get("logFileName")
+	path, err := c.Get("LogFileName")
 	if err != nil {
 		return nil, err
 	}
